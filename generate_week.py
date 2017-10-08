@@ -21,6 +21,43 @@ SCOPES = 'https://www.googleapis.com/auth/calendar.readonly'
 CLIENT_SECRET_FILE = 'client_secret.json'
 APPLICATION_NAME = 'Google Calendar API Python Quickstart'
 
+not_acceptable_calendar_summaries = ['tiffany.qi@mixpanel.com', 'andrew.huang.010@gmail.com', 'Goals']
+
+
+def main():
+    """Shows basic usage of the Google Calendar API.
+
+    Creates a Google Calendar API service object and outputs a list of the next
+    10 events on the user's calendar.
+    """
+    credentials = get_credentials()
+    http = credentials.authorize(httplib2.Http())
+    service = discovery.build('calendar', 'v3', http=http)
+    now = datetime.datetime.utcnow().isoformat() + 'Z'  # 'Z' indicates UTC time
+
+    # get all the calendars
+    calendar_list = service.calendarList().list(pageToken=None).execute()
+    for calendar_list_entry in calendar_list['items']:
+        calendar_id = calendar_list_entry['id']
+        calendar = calendar_list_entry['summary']
+
+        if calendar not in not_acceptable_calendar_summaries:
+            # get all the events in each calendar
+            eventsResult = service.events().list(
+                calendarId=calendar_id, timeMin=now, maxResults=10, singleEvents=True,
+                orderBy='startTime').execute()
+            events = eventsResult.get('items', [])
+            print('===' + calendar + '===')
+
+            if not events:
+                print('No upcoming events found.')
+            for event in events:
+                start = event['start'].get('dateTime', event['start'].get('date'))
+                try:
+                    print(start, event['summary'])
+                except KeyError:
+                    print(start, 'No description')
+
 
 def get_credentials():
     """Gets valid user credentials from storage.
@@ -45,34 +82,10 @@ def get_credentials():
         flow.user_agent = APPLICATION_NAME
         if flags:
             credentials = tools.run_flow(flow, store, flags)
-        else: # Needed only for compatibility with Python 2.6
+        else:  # Needed only for compatibility with Python 2.6
             credentials = tools.run(flow, store)
         print('Storing credentials to ' + credential_path)
     return credentials
-
-def main():
-    """Shows basic usage of the Google Calendar API.
-
-    Creates a Google Calendar API service object and outputs a list of the next
-    10 events on the user's calendar.
-    """
-    credentials = get_credentials()
-    http = credentials.authorize(httplib2.Http())
-    service = discovery.build('calendar', 'v3', http=http)
-
-    now = datetime.datetime.utcnow().isoformat() + 'Z' # 'Z' indicates UTC time
-    print('Getting the upcoming 10 events')
-    eventsResult = service.events().list(
-        calendarId='primary', timeMin=now, maxResults=10, singleEvents=True,
-        orderBy='startTime').execute()
-    events = eventsResult.get('items', [])
-
-    if not events:
-        print('No upcoming events found.')
-    for event in events:
-        start = event['start'].get('dateTime', event['start'].get('date'))
-        print(start, event['summary'])
-
 
 if __name__ == '__main__':
     main()
