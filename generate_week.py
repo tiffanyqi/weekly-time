@@ -79,12 +79,17 @@ def main():
 def calculate_calendar(events):
     """Calculate hours by calendar
     """
-    hours = 0
+    total = datetime.timedelta(minutes=0)
     for event in events:
-        start = event['start'].get('dateTime', event['start'].get('date'))
-        end = event['end'].get('dateTime', event['end'].get('date'))
+        start = event['start'].get('dateTime', event['start'].get('date'))[:-6]
+        end = event['end'].get('dateTime', event['end'].get('date'))[:-6]
+        start_datetime = datetime.datetime.strptime(start, '%Y-%m-%dT%H:%M:%S')
+        end_datetime = datetime.datetime.strptime(end, '%Y-%m-%dT%H:%M:%S')
 
-    return hours
+        time_different = (end_datetime - start_datetime)
+        total += time_different
+
+    return total.total_seconds() / 60 / 60
 
 
 def calculate_goal():
