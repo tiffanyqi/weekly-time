@@ -8,6 +8,7 @@ from oauth2client import tools
 from oauth2client.file import Storage
 
 import datetime
+import pytz
 
 try:
     import argparse
@@ -21,19 +22,41 @@ SCOPES = 'https://www.googleapis.com/auth/calendar.readonly'
 CLIENT_SECRET_FILE = 'client_secret.json'
 APPLICATION_NAME = 'Google Calendar API Python Quickstart'
 
-not_acceptable_calendar_summaries = ['tiffany.qi@mixpanel.com', 'andrew.huang.010@gmail.com', 'Goals']
+# calendar rules
+CALENDARS = {}
+not_acceptable_calendar_summaries = ['Tiffany Qi', 'tiffany.qi@mixpanel.com', 'andrew.huang.010@gmail.com', 'Goals']
+
+# goal_rules
+GOALS = {}
+# goal rule here
+
+# keyword_rules
+KEYWORDS = {}
+# Coding = empty
+# Singing = singing
+# Language Learning = chinese, japanese, korean
+# Dance = dance, aerials
+# Guitar = guitar
+# Taking care of dogs = sf spca, puppy
+# Aerials = aerials
 
 
 def main():
-    """Shows basic usage of the Google Calendar API.
-
-    Creates a Google Calendar API service object and outputs a list of the next
-    10 events on the user's calendar.
+    """Output the number of hours spent in given categories in calendars.txt
+    and output it to a CSV for easy copy and pasting
     """
     credentials = get_credentials()
     http = credentials.authorize(httplib2.Http())
     service = discovery.build('calendar', 'v3', http=http)
-    now = datetime.datetime.utcnow().isoformat() + 'Z'  # 'Z' indicates UTC time
+
+    # time
+    today = datetime.date.today()
+    idx = (today.weekday() + 1) % 7
+    sunday = datetime.datetime.combine(today - datetime.timedelta(7+idx), datetime.time.min).replace(tzinfo=pytz.timezone('US/Pacific')).isoformat()
+    saturday = datetime.datetime.combine(today - datetime.timedelta(7+idx-6), datetime.time(22, 59)).replace(tzinfo=pytz.timezone('US/Pacific')).isoformat()
+
+    print(sunday)
+    print(saturday)
 
     # get all the calendars
     calendar_list = service.calendarList().list(pageToken=None).execute()
@@ -44,19 +67,36 @@ def main():
         if calendar not in not_acceptable_calendar_summaries:
             # get all the events in each calendar
             eventsResult = service.events().list(
-                calendarId=calendar_id, timeMin=now, maxResults=10, singleEvents=True,
+                calendarId=calendar_id, timeMin=sunday, timeMax=saturday, singleEvents=True,
                 orderBy='startTime').execute()
             events = eventsResult.get('items', [])
-            print('===' + calendar + '===')
 
-            if not events:
-                print('No upcoming events found.')
-            for event in events:
-                start = event['start'].get('dateTime', event['start'].get('date'))
-                try:
-                    print(start, event['summary'])
-                except KeyError:
-                    print(start, 'No description')
+            CALENDARS[calendar] = calculate_calendar(events)
+
+    print(CALENDARS)
+
+
+def calculate_calendar(events):
+    """Calculate hours by calendar
+    """
+    hours = 0
+    for event in events:
+        start = event['start'].get('dateTime', event['start'].get('date'))
+        end = event['end'].get('dateTime', event['end'].get('date'))
+
+    return hours
+
+
+def calculate_goal():
+    """Calculate hours by goals
+    """
+    return 'Hello Goals'
+
+
+def calculate_keyword():
+    """Calculate hours by keywords
+    """
+    return 'Hello Keys'
 
 
 def get_credentials():
