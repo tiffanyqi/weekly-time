@@ -22,23 +22,39 @@ SCOPES = 'https://www.googleapis.com/auth/calendar.readonly'
 CLIENT_SECRET_FILE = 'client_secret.json'
 APPLICATION_NAME = 'Google Calendar API Python Quickstart'
 
+
 # calendar rules
 CALENDARS = {}
 not_acceptable_calendar_summaries = ['Tiffany Qi', 'tiffany.qi@mixpanel.com', 'andrew.huang.010@gmail.com', 'Goals']
 
+
 # goal_rules
 GOALS = {}
-# goal rule here
+goals = {
+    'Be healthy': ['Exercise', 'Aerials'],
+    'Be skilled': ['tickets', 'training', 'Learning & Doing', 'Projects', '-news'],
+    'Be understanding': ['news', 'Language Learning', 'Andrew'],
+    'Sadness': ['sad'],
+    'Else': [168]
+}
 
 # keyword_rules
 KEYWORDS = {}
-# Coding = empty
-# Singing = singing
-# Language Learning = chinese, japanese, korean
-# Dance = dance, aerials
-# Guitar = guitar
-# Taking care of dogs = sf spca, puppy
-# Aerials = aerials
+keywords = {
+    'Singing': ['transposing', 'singing', 'a cappella'],
+    'Language Learning': ['chinese', 'japanese', 'korean'],
+    'Dance': ['dance', 'aerials'],
+    'Guitar': ['guitar'],
+    'Taking care of dogs': ['sf spca', 'puppy'],
+    'Aerials': ['aerials']
+}
+keyword_calendar = 'Learning & Reading'
+
+output = {
+    'Calendars': CALENDARS,
+    'Goals': GOALS,
+    'Keywords': KEYWORDS
+}
 
 
 def main():
@@ -71,9 +87,15 @@ def main():
                 orderBy='startTime').execute()
             events = eventsResult.get('items', [])
 
+            # calculate calendar
             CALENDARS[calendar] = calculate_calendar(events)
 
-    print(CALENDARS)
+            # calculate keywords
+            if calendar == keyword_calendar:
+                for category, keyword_array in keywords.iteritems():
+                    KEYWORDS[category] = calculate_keyword(events, keyword_array)
+
+    print(output)
 
 
 def calculate_calendar(events):
@@ -81,13 +103,7 @@ def calculate_calendar(events):
     """
     total = datetime.timedelta(minutes=0)
     for event in events:
-        start = event['start'].get('dateTime', event['start'].get('date'))[:-6]
-        end = event['end'].get('dateTime', event['end'].get('date'))[:-6]
-        start_datetime = datetime.datetime.strptime(start, '%Y-%m-%dT%H:%M:%S')
-        end_datetime = datetime.datetime.strptime(end, '%Y-%m-%dT%H:%M:%S')
-
-        time_different = (end_datetime - start_datetime)
-        total += time_different
+        total += get_duration_of_event(event)
 
     return total.total_seconds() / 60 / 60
 
@@ -98,10 +114,29 @@ def calculate_goal():
     return 'Hello Goals'
 
 
-def calculate_keyword():
+def calculate_keyword(events, keyword_array):
     """Calculate hours by keywords
     """
-    return 'Hello Keys'
+    total = datetime.timedelta(minutes=0)
+    for keyword in keyword_array:
+        for event in events:
+            try:
+                if keyword in event['summary']:
+                    total += get_duration_of_event(event)
+            except KeyError:
+                continue
+
+    return total.total_seconds() / 60 / 60
+
+
+def get_duration_of_event(event):
+    start = event['start'].get('dateTime', event['start'].get('date'))[:-6]
+    end = event['end'].get('dateTime', event['end'].get('date'))[:-6]
+    start_datetime = datetime.datetime.strptime(start, '%Y-%m-%dT%H:%M:%S')
+    end_datetime = datetime.datetime.strptime(end, '%Y-%m-%dT%H:%M:%S')
+
+    time_different = (end_datetime - start_datetime)
+    return time_different
 
 
 def get_credentials():
