@@ -7,8 +7,12 @@ from oauth2client import client
 from oauth2client import tools
 from oauth2client.file import Storage
 
+import csv
 import datetime
+import json
 import pytz
+
+from keys import not_acceptable_calendar_summaries, keywords
 
 try:
     import argparse
@@ -25,29 +29,13 @@ APPLICATION_NAME = 'Google Calendar API Python Quickstart'
 
 # calendar rules
 CALENDARS = {}
-not_acceptable_calendar_summaries = ['Tiffany Qi', 'tiffany.qi@mixpanel.com', 'andrew.huang.010@gmail.com', 'Goals']
-
-# keyword_rules
 KEYWORDS = {}
-keywords = {
-    'Learning & Reading': {
-        'Singing': ['transposing', 'singing', 'a cappella'],
-        'Language Learning': ['chinese', 'japanese', 'korean'],
-        'Dance': ['dance', 'aerials'],
-        'Guitar': ['guitar'],
-        'Taking care of dogs': ['sf spca', 'puppy'],
-        'Aerials': ['aerials'],
-        '*Understanding_keywords': ['news'],
-    },
-    '\u2661\u2661\u2661': {
-        '*Sad': ['sad']
-    },
-    'Work': {
-        '*Skilled_keywords': ['tickets', 'training']
-    }
-}
 
 output = {
+    'Time': {
+        'Start': '',
+        'End': ''
+    },
     'Calendars': CALENDARS,
     'Keywords': KEYWORDS
 }
@@ -67,8 +55,8 @@ def main():
     sunday = datetime.datetime.combine(today - datetime.timedelta(7+idx), datetime.time.min).replace(tzinfo=pytz.timezone('US/Pacific')).isoformat()
     saturday = datetime.datetime.combine(today - datetime.timedelta(7+idx-6), datetime.time(22, 59)).replace(tzinfo=pytz.timezone('US/Pacific')).isoformat()
 
-    print(sunday)
-    print(saturday)
+    output['Time']['Start'] = sunday
+    output['Time']['End'] = saturday
 
     # get all the calendars
     calendar_list = service.calendarList().list(pageToken=None).execute()
@@ -92,7 +80,8 @@ def main():
                     for category, keyword_array in keys.iteritems():
                         KEYWORDS[category] = calculate_keyword(events, keyword_array)
 
-    print(output)
+    with open('output.json', 'w') as fp:
+        json.dump(output, fp)
 
 
 def calculate_calendar(events):
